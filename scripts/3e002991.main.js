@@ -88,7 +88,7 @@ angular.module('Calculator')
 
             $scope.clear = function(){
                 Earnings.clear();
-                $scope.inputsForm.$setPristine(true); // holy fuck seriously..
+                $scope.inputsForm.$setPristine(true); // holy &^*£ seriously..
             }
 
             $scope.addEarnings = function(){
@@ -102,7 +102,7 @@ angular.module('Calculator')
                 );
 
                 Earnings.clear();
-                $scope.inputs = Earnings.inputs; // this is fucking shit
+                $scope.inputs = Earnings.inputs; // this is *@%$ing @£$%
                 $scope.submitted = false;
             }
         }
