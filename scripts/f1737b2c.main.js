@@ -1,5 +1,5 @@
 angular.module('Calculator', ['ngRoute'])
-    .constant('dev', true);
+    .constant('dev', false);
 angular.module('Calculator')
     .factory('Earnings', function(){
         var defaults = {
