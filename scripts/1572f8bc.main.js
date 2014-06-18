@@ -1,5 +1,7 @@
-angular.module('Calculator', ['ngRoute'])
-    .constant('dev', true);
+angular.module('Calculator', [
+    'ngRoute', 
+    'ngAnimate'
+]).constant('dev', true);
 angular.module('Calculator')
     .factory('Earnings', function(){
         var defaults = {
@@ -18,36 +20,25 @@ angular.module('Calculator')
                     rate: null,
                     percentage: null
                 }
-            };
-
-        var e = {
-            charges: {},
-            earnings: {},
-            inputs: {},
-            earningsHistory: [],
-            reset: reset,
-            clear: clear,
-            addEarnings: function(price, rate, percentage){
-                setInputs(price, rate, percentage);
-                calculateCharges(price, rate, percentage);
-                calcEarnings();
-                addToHistory();
-            }
-        }
+            },
+            inputs = {},
+            charges = {},
+            earnings = {},
+            earningsHistory = [];
 
         function reset(){
-            e.charges = angular.extend({}, defaults.charges);
-            e.earnings = angular.extend({}, defaults.earnings);
-            e.inputs = angular.copy(defaults.inputs);
-            e.earningsHistory = [];
+            charges = angular.extend({}, defaults.charges);
+            earnings = angular.extend({}, defaults.earnings);
+            inputs = angular.copy(defaults.inputs);
+            earningsHistory = [];
         }
 
         function clear(){
-            e.inputs = angular.extend({}, defaults.inputs);
+            inputs = angular.extend({}, defaults.inputs);
         }
 
         function setInputs(price, rate, percentage) {
-            e.inputs = {
+            inputs = {
                 price: price,
                 rate: rate,
                 percentage: percentage
@@ -56,24 +47,38 @@ angular.module('Calculator')
 
         function calculateCharges(price, rate, percentage){
             var tax = price * (rate / 100);
-            e.charges.subtotal = price + tax;
-            e.charges.tip = e.charges.subtotal * (percentage / 100);
-            e.charges.total = e.charges.subtotal + e.charges.tip;
+            charges.subtotal = price + tax;
+            charges.tip = charges.subtotal * (percentage / 100);
+            charges.total = charges.subtotal + charges.tip;
         }
 
         function calcEarnings(){
-            e.earnings.tiptotal += e.charges.tip;
-            ++e.earnings.count;
-            e.earnings.average = e.earnings.tiptotal / e.earnings.count;
+            earnings.tiptotal += charges.tip;
+            ++earnings.count;
+            earnings.average = earnings.tiptotal / earnings.count;
         }
 
         function addToHistory(){
-            var row = angular.extend({}, e.charges, e.inputs);
-            e.earningsHistory.push(row);
+            var row = angular.extend({}, charges, inputs);
+            earningsHistory.push(row);
         }
 
         reset();
-        return e;
+        
+        return {
+            getCharges: function(){ return charges; },
+            getEarnings: function(){ return earnings; },
+            getInputs: function(){ return inputs; },
+            getEarningsHistory: function() { return earningsHistory; },
+            reset: reset,
+            clear: clear,
+            addEarnings: function(price, rate, percentage){
+                setInputs(price, rate, percentage);
+                calculateCharges(price, rate, percentage);
+                calcEarnings();
+                addToHistory();
+            }
+        };
     });
 
 angular.module('Calculator')
@@ -81,9 +86,9 @@ angular.module('Calculator')
         ['$scope', 'Earnings', function ($scope, Earnings) {
             'use strict';
             
-            $scope.inputs = Earnings.inputs;
-            $scope.earnings = Earnings.earnings;
-            $scope.charges = Earnings.charges;
+            $scope.inputs = Earnings.getInputs();
+            $scope.earnings = Earnings.getEarnings();
+            $scope.charges = Earnings.getCharges();
             $scope.submitted = false;
 
             $scope.clear = function(){
@@ -102,7 +107,7 @@ angular.module('Calculator')
                 );
 
                 Earnings.clear();
-                $scope.inputs = Earnings.inputs; // this is *@%$ing @£$%
+                $scope.inputs = Earnings.getInputs(); // this is *@%$ing @£$%
                 $scope.submitted = false;
             }
         }
@@ -114,22 +119,23 @@ angular.module('Calculator')
 
             $scope.reset = function(){
                 Earnings.reset();
-                $scope.earnings = Earnings.earnings;
-                $scope.earningsHistory = Earnings.earningsHistory;
+                $scope.earnings = Earnings.getEarnings();
+                $scope.earningsHistory = Earnings.getEarningsHistory();
             };
             
-            $scope.earnings = Earnings.earnings;
-            $scope.earningsHistory = Earnings.earningsHistory;
+            $scope.earnings = Earnings.getEarnings();
+            $scope.earningsHistory = Earnings.getEarningsHistory();
         }
     ])
 angular.module('Calculator')
-    .config([ 'dev', '$provide', '$routeProvider', '$locationProvider',
-        function(dev, $p, $rP, $lP){
-            $p.value('prf', (dev) ? '#!/' : '/');
-            if (!dev) $lP.html5Mode(true);
-            else $lP.hashPrefix('!')
+    .config([ 'dev', '$routeProvider', '$locationProvider',
+        function(dev, $routeP, $locP /*, $provider */){
+            // $p.value('prf', (dev) ? '#!/' : '/');
+            if (!dev) $locP.html5Mode(true);
+            
+            $locP.hashPrefix('!')
 
-            $rP.when( '/new-meal', {
+            $routeP.when( '/new-meal', {
                     controller: 'InputsCtrl',
                     templateUrl: 'tmpl/inputs.html'
                 })
@@ -152,13 +158,12 @@ angular.module('Calculator')
         ,
         { url: 'my-earnings',   name: 'my earnings' }
     ])
-    .run(['$rootScope', 'prf', 'pages', '$location', '$route',
-        function($rS, prf, pages, $l, $r){
-            $rS.prf = prf;
+    .run(['$rootScope', 'pages', '$location',
+        function($rS, pages, $locP){
             $rS.pages = pages;
-            $rS.path = $l.$$path;
+            $rS.path = $locP.$$path;
             $rS.$on('$routeChangeSuccess', function() {
-                $rS.path = $l.$$path;
+                $rS.path = $locP.$$path;
             });
         }
     ]);
